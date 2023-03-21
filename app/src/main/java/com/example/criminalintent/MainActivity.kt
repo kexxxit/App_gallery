@@ -1,15 +1,24 @@
 package com.example.criminalintent
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.criminalintent.data.Model.Photos
 import com.example.criminalintent.data.repository.Repository
 import com.example.criminalintent.databinding.ActivityMainBinding
@@ -18,6 +27,7 @@ import com.example.criminalintent.db.repository.IntentRealization
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 import retrofit2.Response
+import java.util.concurrent.TimeUnit
 
 
 class MainActivity : AppCompatActivity() {
@@ -26,8 +36,13 @@ class MainActivity : AppCompatActivity() {
     var photoList: MutableLiveData<Response<Photos>> = MutableLiveData()
     private val adapter = IntentListAdapter()
 
+
+// Отправляем запрос в WorkManager для выполнения в фоновом режиме
+
+
     private var fragment =  IntentFragment.newInstance()
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -35,7 +50,9 @@ class MainActivity : AppCompatActivity() {
         APP = this
         init()
         initDataBase()
-
+        val flickrCheckerRequest = PeriodicWorkRequestBuilder<FlickrChecker>(30, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(this).enqueue(flickrCheckerRequest)
         val search = findViewById<TextInputEditText>(R.id.search)
 
         search.doOnTextChanged { text, start, count, after ->
@@ -49,18 +66,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.nav_menu, menu)
-
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            supportActionBar?.setDisplayHomeAsUpEnabled(false)
-            supportFragmentManager.beginTransaction().remove(fragment).commit()
-        } else if (item.itemId == R.id.add) {
-            supportFragmentManager.beginTransaction().replace(R.id.intentForm, fragment).commit()
-            supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        }
 
         return true
     }
@@ -81,6 +86,8 @@ class MainActivity : AppCompatActivity() {
             photoList.value = repo.getTagsPhotos(tag)
         }
     }
+
+
 
     fun outputPhotos(tag: String) {
         binding.apply {
