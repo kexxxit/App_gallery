@@ -16,4 +16,7 @@ interface IntentDao {
 
     @Query("SELECT * from photo_table")
     fun getAllIntents(): LiveData<List<IntentModel>>
+
+    @Query("DELETE FROM photo_table")
+    fun deleteAll()
 }

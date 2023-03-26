@@ -3,6 +3,7 @@ package com.example.criminalintent
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.Menu
@@ -12,6 +13,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
+import androidx.core.view.GravityCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
@@ -25,6 +27,7 @@ import com.example.criminalintent.databinding.ActivityMainBinding
 import com.example.criminalintent.db.IntentDataBase
 import com.example.criminalintent.db.repository.IntentRealization
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import retrofit2.Response
 import java.util.concurrent.TimeUnit
@@ -35,11 +38,6 @@ class MainActivity : AppCompatActivity() {
     private var repo = Repository()
     var photoList: MutableLiveData<Response<Photos>> = MutableLiveData()
     private val adapter = IntentListAdapter()
-
-
-// Отправляем запрос в WorkManager для выполнения в фоновом режиме
-
-
     private var fragment =  IntentFragment.newInstance()
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -67,6 +65,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.nav_menu, menu)
 
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.add -> {
+                val intent = Intent(this, SavedPhotosActivity::class.java)
+                startActivity(intent)
+            }
+            R.id.delete -> {
+                val db = IntentDataBase.getInstance(this).getIntentDao()
+                GlobalScope.launch {
+                    db.deleteAll()
+                }
+            }
+        }
         return true
     }
 
